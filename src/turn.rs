@@ -1,5 +1,4 @@
-use crate::board::Board;
-use crate::Error;
+use crate::{board::Board, Error};
 
 impl Board {
     pub fn turn(&mut self, code: String) -> Result<(), Error> {
@@ -16,5 +15,8 @@ impl Board {
         let end = &chars[base_idx + 2..=base_idx + 3];
         println!("{start:?} {end:?}");
         Ok(())
+    }
+    pub fn has_mate(&self) -> bool {
+        false
     }
 }

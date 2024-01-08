@@ -1,18 +1,17 @@
-use crate::board::{Board, Color};
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+
+use parking_lot::RwLock;
 use thiserror::Error;
-use tokio::net::TcpListener;
-use tokio::select;
-use tokio::sync::{
-    mpsc::{Receiver as MpscReceiver, Sender as MpscSender},
-    oneshot::Receiver as OneshotReceiver,
+use tokio::{
+    net::{TcpListener, TcpStream},
+    select,
+    sync::oneshot::Sender as OneshotSender,
+    task::JoinSet,
 };
-use tokio::task::JoinSet;
+
+use crate::board::Board;
 
 mod board;
-mod channel_server;
 mod net;
 mod turn;
 
@@ -27,7 +26,10 @@ async fn main() {
         let _ = shutdown_tx.send(());
     });
     let mut connections = JoinSet::new();
-    let state = State;
+    let state = State {
+        pending: Arc::new(RwLock::new(HashMap::new())),
+    };
+    println!("Listening on {addr}");
     loop {
         let socket = select! {
             value = listener.accept() => value,
@@ -42,20 +44,25 @@ async fn main() {
                 continue;
             }
         };
-        connections.spawn(net::handle(state.clone(), stream));
+        connections.spawn(state.clone().handle(stream));
     }
     while connections.join_next().await.is_some() {}
+    println!("All games done, bye!");
 }
 
 #[derive(Clone)]
 pub struct State {
-    pending: Arc<RwLock<HashMap<String, (MpscSender<ChessMessage>, MpscReceiver<ChessMessage>)>>>,
+    pending: Arc<RwLock<HashMap<String, OneshotSender<TcpStream>>>>,
 }
-
-pub enum ChessMessage {}
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Chess notation was too short")]
     BadNotationLength,
+    #[error("I/O error")]
+    Io(#[from] std::io::Error),
+    #[error("Format error")]
+    Fmt(#[from] std::fmt::Error),
+    #[error("Room join error")]
+    OneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
 }

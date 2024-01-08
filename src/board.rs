@@ -1,11 +1,23 @@
-use owo_colors::{DynColors, OwoColorize};
 use std::fmt::{Display, Formatter, Write};
+
+use owo_colors::{DynColors, OwoColorize};
 
 pub struct Board {
     inner: RawBoard,
 }
 
 impl Board {
+    const BLANK_RANK: Rank = [None; 8];
+    const EIGHTH_RANK: Rank = [
+        Some((Color::Black, Piece::Rook)),
+        Some((Color::Black, Piece::Knight)),
+        Some((Color::Black, Piece::Bishop)),
+        Some((Color::Black, Piece::King)),
+        Some((Color::Black, Piece::Queen)),
+        Some((Color::Black, Piece::Bishop)),
+        Some((Color::Black, Piece::Knight)),
+        Some((Color::Black, Piece::Rook)),
+    ];
     const FIRST_RANK: Rank = [
         Some((Color::White, Piece::Rook)),
         Some((Color::White, Piece::Knight)),
@@ -17,18 +29,8 @@ impl Board {
         Some((Color::White, Piece::Rook)),
     ];
     const SECOND_RANK: Rank = [Some((Color::White, Piece::Pawn)); 8];
-    const BLANK_RANK: Rank = [None; 8];
     const SEVENTH_RANK: Rank = [Some((Color::Black, Piece::Pawn)); 8];
-    const EIGHTH_RANK: Rank = [
-        Some((Color::Black, Piece::Rook)),
-        Some((Color::Black, Piece::Knight)),
-        Some((Color::Black, Piece::Bishop)),
-        Some((Color::Black, Piece::King)),
-        Some((Color::Black, Piece::Queen)),
-        Some((Color::Black, Piece::Bishop)),
-        Some((Color::Black, Piece::Knight)),
-        Some((Color::Black, Piece::Rook)),
-    ];
+
     pub fn new() -> Self {
         let inner = [
             Self::EIGHTH_RANK,
@@ -42,6 +44,7 @@ impl Board {
         ];
         Self { inner }
     }
+
     pub fn display(&self, player_color: Color) -> Result<String, std::fmt::Error> {
         let mut b = String::with_capacity(9 * 9 * 3 * 3);
         let mut square_color = player_color;
@@ -102,12 +105,14 @@ impl Color {
     pub fn flip(&mut self) {
         *self = self.flipped();
     }
+
     pub fn flipped(&self) -> Self {
         match self {
             Self::Black => Self::White,
             Self::White => Self::Black,
         }
     }
+
     pub fn owo(&self) -> owo_colors::AnsiColors {
         match self {
             Color::Black => owo_colors::AnsiColors::Black,
@@ -133,6 +138,7 @@ impl Piece {
             Color::White => self.display_white(),
         }
     }
+
     pub fn display_black(self) -> char {
         match self {
             Piece::King => '♔',
@@ -143,6 +149,7 @@ impl Piece {
             Piece::Pawn => '♙',
         }
     }
+
     pub fn display_white(self) -> char {
         match self {
             Piece::King => '♚',
