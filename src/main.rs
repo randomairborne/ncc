@@ -12,6 +12,7 @@ use tokio::{
 use crate::board::Board;
 
 mod board;
+mod display;
 mod net;
 mod turn;
 
@@ -57,8 +58,8 @@ pub struct State {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Chess notation was too short")]
-    BadNotationLength,
+    #[error("Chess notation invalid: {0}")]
+    BadNotation(#[from] turn::NotationParseError),
     #[error("I/O error")]
     Io(#[from] std::io::Error),
     #[error("Format error")]

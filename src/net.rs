@@ -1,14 +1,16 @@
+use std::{fmt::Display, time::Duration};
+
 use rand::distributions::{Alphanumeric, DistString};
-use std::fmt::Display;
-use std::time::Duration;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
     select,
 };
 
-use crate::board::{Board, Color};
-use crate::{Error, State};
+use crate::{
+    board::{Board, Color},
+    Error, State,
+};
 
 pub trait TermUtils {
     async fn write_str(&mut self, item: &str) -> Result<(), Error>;
@@ -24,6 +26,7 @@ impl TermUtils for TcpStream {
         self.write_all(item.to_string().as_bytes()).await?;
         Ok(())
     }
+
     async fn read_line(&mut self) -> Result<String, Error> {
         let mut text_bytes = Vec::new();
         loop {
@@ -43,6 +46,7 @@ impl State {
             eprintln!("Error: {e:?}");
         }
     }
+
     #[async_recursion::async_recursion]
     async fn connect_or_create(&self, mut stream: TcpStream) -> Result<(), Error> {
         stream.write_str("Join or create room? [j/c]\n").await?;
@@ -84,7 +88,11 @@ impl State {
         white.clear().await?;
         white.write_str(&format!("Code: {code}\n")).await?;
         let black: TcpStream = loop {
-            let message = format!("Waiting for opponent{}{}\r", ".".repeat(dots), "   ");
+            let message = format!(
+                "\rWaiting for opponent{}{}",
+                ".".repeat(dots),
+                " ".repeat(3 - dots)
+            );
             white.write_str(&message).await?;
             if dots >= 3 {
                 dots = 1;
@@ -100,12 +108,21 @@ impl State {
         self.run_game(white, black).await?;
         Ok(())
     }
+
     async fn run_game(&self, mut white: TcpStream, mut black: TcpStream) -> Result<(), Error> {
         let mut board = Board::new();
+        let mut turn = Color::White;
         loop {
             white.write_str(&board.display(Color::White)?).await?;
             black.write_str(&board.display(Color::Black)?).await?;
-            if board.has_mate() {}
+            let active_color = match turn {
+                Color::White => &mut white,
+                Color::Black => &mut black,
+            };
+            active_color.write_str("Your turn!\n").await?;
+            let notation = active_color.read_line().await?;
+            board.turn(notation)?;
+            turn.flip();
         }
         Ok(())
     }
