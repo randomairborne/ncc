@@ -1,7 +1,4 @@
-use crate::{
-    board::{Board, BoardSpace, File, Rank},
-    Error,
-};
+use crate::board::{Board, BoardSpace, File, Rank};
 
 fn notation_to_position(data: &[char]) -> Result<BoardSpace, NotationParseError> {
     if data.len() != 2 {

@@ -1,4 +1,10 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::{Formatter, Write},
+    io::ErrorKind,
+    net::SocketAddr,
+    sync::Arc,
+};
 
 use parking_lot::RwLock;
 use thiserror::Error;
@@ -58,12 +64,24 @@ pub struct State {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Chess notation invalid: {0}")]
-    BadNotation(#[from] turn::NotationParseError),
-    #[error("I/O error")]
     Io(#[from] std::io::Error),
-    #[error("Format error")]
     Fmt(#[from] std::fmt::Error),
-    #[error("Room join error")]
     OneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let msg = match self {
+            Error::Io(e) => match e.kind() {
+                ErrorKind::ConnectionReset => "Connection reset",
+                ErrorKind::ConnectionAborted => "Connection aborted",
+                ErrorKind::NotConnected => "Not connected",
+                ErrorKind::UnexpectedEof => "Unexpected EOF",
+                _ => "I/O error",
+            },
+            Error::Fmt(_) => "Internal formatting error",
+            Error::OneshotRecv(_) => "Internal communication error",
+        };
+        f.write_str(msg)
+    }
 }

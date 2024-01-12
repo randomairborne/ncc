@@ -104,8 +104,9 @@ impl State {
             }
         };
         if let Err(err) = self.run_game(&mut white, &mut black).await {
-            let _ = white.write_str(&format!("\n{err}\n")).await;
-            let _ = black.write_str(&format!("\n{err}\n")).await;
+            let disconnect_msg = format!("\nDisconnected: {err}\n");
+            let _ = white.write_str(&disconnect_msg).await;
+            let _ = black.write_str(&disconnect_msg).await;
         }
         Ok(())
     }
