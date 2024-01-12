@@ -6,7 +6,8 @@ use crate::board::{Board, Color, RawBoard};
 
 impl Board {
     pub fn display(&self, player_color: Color) -> Result<String, std::fmt::Error> {
-        let mut b = String::with_capacity(9 * 9 * 3 * 3);
+        let mut b = String::with_capacity(9 * 9 * 3 * 3 + 64);
+        b.push('\n');
         let mut square_color = player_color;
         let (rank_delta, mut rank_num) = match player_color {
             Color::White => (-1, 8),
@@ -35,6 +36,7 @@ impl Board {
             writeln!(b)?;
         }
         Self::write_files(&mut b, player_color)?;
+        b.push('\n');
         Ok(b)
     }
 

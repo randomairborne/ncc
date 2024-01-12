@@ -15,10 +15,10 @@ use crate::{
 pub trait TermUtils {
     async fn write_str(&mut self, item: &str) -> Result<(), Error>;
     async fn read_line(&mut self) -> Result<String, Error>;
-    async fn clear(&mut self) -> Result<(), Error> {
-        const CLEAR: &str = "\u{1b}[2J\n";
-        self.write_str(CLEAR).await
-    }
+    // async fn clear(&mut self) -> Result<(), Error> {
+    //     const CLEAR: &str = "\u{1b}[2J\n";
+    //     self.write_str(CLEAR).await
+    // }
 }
 
 impl TermUtils for TcpStream {
@@ -85,9 +85,8 @@ impl State {
         self.pending.write().insert(code.clone(), stream_tx);
         let remind_dur = Duration::from_secs(1);
         let mut dots = 1;
-        white.clear().await?;
         white.write_str(&format!("Code: {code}\n")).await?;
-        let black: TcpStream = loop {
+        let mut black: TcpStream = loop {
             let message = format!(
                 "\rWaiting for opponent{}{}",
                 ".".repeat(dots),
@@ -104,26 +103,39 @@ impl State {
                 _ = tokio::time::sleep(remind_dur) => {}
             }
         };
-        white.clear().await?;
-        self.run_game(white, black).await?;
+        if let Err(err) = self.run_game(&mut white, &mut black).await {
+            let _ = white.write_str(&format!("\n{err}\n")).await;
+            let _ = black.write_str(&format!("\n{err}\n")).await;
+        }
         Ok(())
     }
 
-    async fn run_game(&self, mut white: TcpStream, mut black: TcpStream) -> Result<(), Error> {
+    async fn run_game(&self, white: &mut TcpStream, black: &mut TcpStream) -> Result<(), Error> {
         let mut board = Board::new();
         let mut turn = Color::White;
         loop {
             white.write_str(&board.display(Color::White)?).await?;
             black.write_str(&board.display(Color::Black)?).await?;
-            let active_color = match turn {
-                Color::White => &mut white,
-                Color::Black => &mut black,
-            };
-            active_color.write_str("Your turn!\n").await?;
-            let notation = active_color.read_line().await?;
-            board.turn(notation)?;
-            turn.flip();
+            turn = match turn {
+                Color::White => self.turn(&mut board, turn, white).await,
+                Color::Black => self.turn(&mut board, turn, black).await,
+            }?;
         }
-        Ok(())
+    }
+
+    async fn turn(
+        &self,
+        board: &mut Board,
+        turn: Color,
+        active: &mut TcpStream,
+    ) -> Result<Color, Error> {
+        active.write_str("Your turn!\n").await?;
+        loop {
+            let notation = active.read_line().await?;
+            match board.turn(notation) {
+                Ok(()) => return Ok(turn.flipped()),
+                Err(e) => active.write_str(&format!("\n{e}\n")).await?,
+            }
+        }
     }
 }
