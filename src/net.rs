@@ -1,4 +1,4 @@
-use std::{fmt::Display, time::Duration};
+use std::time::Duration;
 
 use rand::distributions::{Alphanumeric, DistString};
 use tokio::{

@@ -1,4 +1,4 @@
-use crate::board::{Board, BoardSpace, File, Rank};
+use crate::board::{Board, BoardSpace, Color, File, Rank};
 
 fn notation_to_position(data: &[char]) -> Result<BoardSpace, NotationParseError> {
     if data.len() != 2 {
@@ -41,7 +41,7 @@ impl Board {
         Ok(())
     }
 
-    pub fn has_mate(&self) -> bool {
+    pub fn has_mate(&self, color: Color) -> bool {
         false
     }
 }

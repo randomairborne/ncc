@@ -1,10 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::{Formatter, Write},
-    io::ErrorKind,
-    net::SocketAddr,
-    sync::Arc,
-};
+use std::{collections::HashMap, fmt::Formatter, io::ErrorKind, net::SocketAddr, sync::Arc};
 
 use parking_lot::RwLock;
 use thiserror::Error;
